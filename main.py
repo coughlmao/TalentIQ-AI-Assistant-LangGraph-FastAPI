@@ -26,6 +26,9 @@ app.add_middleware(
 # ----------------------------------------------------------------------
 # THE ENDPOINT ROUTE ROUTER INTERFACE
 # ----------------------------------------------------------------------
+@app.get("/")
+def read_root():
+    return {"status": "healthy", "message": "TalentIQ AI Assistant Backend is running!"}
 
 @app.post("/api/graph/chat")
 async def handle_workspace_chat(payload:ChatbotRequestSchema):
