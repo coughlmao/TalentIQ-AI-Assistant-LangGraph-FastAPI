@@ -26,6 +26,7 @@ app.add_middleware(
 # ----------------------------------------------------------------------
 # THE ENDPOINT ROUTE ROUTER INTERFACE
 # ----------------------------------------------------------------------
+# Add this block at the top level
 @app.get("/")
 def read_root():
     return {"status": "healthy", "message": "TalentIQ AI Assistant Backend is running!"}
