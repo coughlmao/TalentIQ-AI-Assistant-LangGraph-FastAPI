@@ -1,15 +1,36 @@
-from graph import graph_executor
+from graph import (
+    llm,
+    build_chat_payload,
+)
+
 
 async def token_stream_generator(initial_graph_state):
-    """Executes the compiled graph workflow and emits word tokens in real-time."""
+    """
+    Streams Gemini tokens as Server-Sent Events.
+
+    Express simply forwards these chunks to React.
+    """
+
     try:
-        # Stream messages step-by-step out of the active node channel
-        async for chunk, metadata in graph_executor.astream(
-            initial_graph_state, 
-            stream_mode="messages"
-        ):
-            if chunk.content:
-                # Yield raw text tokens straight through the open network link pipe
-                yield chunk.content
+
+        messages = build_chat_payload(initial_graph_state)
+
+        async for chunk in llm.astream(messages):
+
+            if not chunk.content:
+                continue
+
+            print("TOKEN:", repr(chunk.content))
+
+            yield f"data: {chunk.content}\n\n"
+
+        yield "event: done\ndata: done\n\n"
+
     except Exception as e:
-        yield f"\n[Streaming Connection Node Exception: {str(e)}]"
+
+        print("Streaming error:", str(e))
+
+        yield (
+            "event: error\n"
+            f"data: {str(e)}\n\n"
+        )
