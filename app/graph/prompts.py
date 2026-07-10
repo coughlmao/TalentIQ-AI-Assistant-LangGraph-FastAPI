@@ -1,36 +1,15 @@
-from typing_extensions import TypedDict
-from dotenv import load_dotenv
-
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import (
-    SystemMessage,
-    HumanMessage,
     AIMessage,
+    HumanMessage,
+    SystemMessage,
 )
 
-from langgraph.graph import (
-    StateGraph,
-    START,
-    END,
-)
-
-load_dotenv()
+from app.graph.state import GraphState
 
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0.4,
-)
-
-
-class GraphState(TypedDict):
-    chat_history: list
-    problem_context: dict
-    execution_context: dict
-    final_response: str
-
-
-def build_chat_payload(state: GraphState):
+def build_prompt_messages(
+    state: GraphState,
+) -> list:
     """
     Builds the conversation payload for Gemini.
     """
@@ -94,34 +73,3 @@ def build_chat_payload(state: GraphState):
             chat_payload.append(AIMessage(content=content))
 
     return chat_payload
-
-
-def coding_instructor_node(state: GraphState):
-
-    messages = build_chat_payload(state)
-
-    response = llm.invoke(messages)
-
-    return {
-        "final_response": response.content,
-    }
-
-
-builder = StateGraph(GraphState)
-
-builder.add_node(
-    "instructor",
-    coding_instructor_node,
-)
-
-builder.add_edge(
-    START,
-    "instructor",
-)
-
-builder.add_edge(
-    "instructor",
-    END,
-)
-
-graph_executor = builder.compile()
