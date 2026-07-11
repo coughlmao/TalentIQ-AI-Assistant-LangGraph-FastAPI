@@ -1,13 +1,18 @@
+# app/logger.py
+
 import logging
+import os
+import sys
 
+# Compute the target logging severity dynamically
+log_level = logging.DEBUG if os.getenv("DEBUG") else logging.INFO
 
-def configure_logging() -> logging.Logger:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    )
+logging.basicConfig(
+    level=log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+    ],
+)
 
-    return logging.getLogger("ai-assistant")
-
-
-logger = configure_logging()
+logger = logging.getLogger("talentiq-assistant")

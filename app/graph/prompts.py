@@ -1,3 +1,5 @@
+# app/graph/prompts.py
+
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
@@ -7,9 +9,12 @@ from langchain_core.messages import (
 
 from app.graph.intents import AssistantIntent
 from app.graph.state import GraphState
+from app.graph.types import PromptRegistry
 
 
-def build_base_prompt(state:GraphState)->SystemMessage:
+def build_base_prompt(
+    state: GraphState,
+) -> SystemMessage:
     """
     Builds the conre context containing system instructions,problem parameters
     and the student's workspace environment
@@ -58,8 +63,11 @@ def build_base_prompt(state:GraphState)->SystemMessage:
         )
     )
 
-def append_chat_history(state:GraphState,initial_payload:list[BaseMessage])->list[BaseMessage]:
-    
+
+def append_chat_history(
+    state: GraphState,
+    initial_payload: list[BaseMessage],
+) -> list[BaseMessage]:
     """
     Appends the last 4 messages of chat history to the conversation payload
     """
@@ -78,13 +86,22 @@ def append_chat_history(state:GraphState,initial_payload:list[BaseMessage])->lis
 
     return chat_payload
 
-def build_general_prompt(state:GraphState) -> list[BaseMessage]:
-    base_sys=build_base_prompt(state)
-    return append_chat_history(state,[base_sys],)
 
-def build_hint_prompt(state:GraphState)->list[BaseMessage]:
-    base_sys=build_base_prompt(state)
-    hint_extension=(
+def build_general_prompt(
+    state: GraphState,
+) -> list[BaseMessage]:
+    base_sys = build_base_prompt(state)
+    return append_chat_history(
+        state,
+        [base_sys],
+    )
+
+
+def build_hint_prompt(
+    state: GraphState,
+) -> list[BaseMessage]:
+    base_sys = build_base_prompt(state)
+    hint_extension = (
         "\n\n"
         "## Hint Mode\n"
         "- Do NOT reveal the full solution.\n"
@@ -92,12 +109,18 @@ def build_hint_prompt(state:GraphState)->list[BaseMessage]:
         "- Ask guiding questions.\n"
         "- Give only incremental, bite-sized hints.\n"
     )
-    custom_sys=SystemMessage(content=base_sys.content + hint_extension)
-    return append_chat_history(state,[custom_sys])
+    custom_sys = SystemMessage(content=base_sys.content + hint_extension)
+    return append_chat_history(
+        state,
+        [custom_sys],
+    )
 
-def build_debug_prompt(state:GraphState)->list[BaseMessage]:
-    base_sys=build_base_prompt(state)
-    debug_extension=(
+
+def build_debug_prompt(
+    state: GraphState,
+) -> list[BaseMessage]:
+    base_sys = build_base_prompt(state)
+    debug_extension = (
         "\n\n"
         "## Debug Mode\n"
         "Focus cleanly on resolving code problems:\n"
@@ -106,12 +129,18 @@ def build_debug_prompt(state:GraphState)->list[BaseMessage]:
         "- Logical bugs\n"
         "- Do not discuss unrelated high-level algorithms.\n"
     )
-    custom_sys=SystemMessage(content=base_sys.content+debug_extension)
-    return append_chat_history(state,[custom_sys])
+    custom_sys = SystemMessage(content=base_sys.content + debug_extension)
+    return append_chat_history(
+        state,
+        [custom_sys],
+    )
 
-def build_review_prompt(state:GraphState)->list[BaseMessage]:
-    base_sys=build_base_prompt(state)
-    review_extension=(
+
+def build_review_prompt(
+    state: GraphState,
+) -> list[BaseMessage]:
+    base_sys = build_base_prompt(state)
+    review_extension = (
         "\n\n"
         "## Review Mode\n"
         "Review the submitted implementation for:\n"
@@ -121,35 +150,54 @@ def build_review_prompt(state:GraphState)->list[BaseMessage]:
         "- Structural naming conventions\n"
         "- Maintainability\n"
     )
-    custom_sys=SystemMessage(content=base_sys.content + review_extension)
-    return append_chat_history(state,[custom_sys])
+    custom_sys = SystemMessage(content=base_sys.content + review_extension)
+    return append_chat_history(
+        state,
+        [custom_sys],
+    )
 
-def build_explain_prompt(state:GraphState)->list[BaseMessage]:
-    base_sys=build_base_prompt(state)
-    explain_extension=(
+
+def build_explain_prompt(
+    state: GraphState,
+) -> list[BaseMessage]:
+    base_sys = build_base_prompt(state)
+    explain_extension = (
         "\n\n"
         "## Explain Mode\n"
         "- Focus heavily on teaching fundamental concepts.\n"
         "- Use illustrative micro-examples.\n"
         "- Avoid solving the specific problem context directly unless explicitly requested.\n"
     )
-    custom_sys=SystemMessage(content=base_sys.content + explain_extension)
-    return append_chat_history(state,[custom_sys])
+    custom_sys = SystemMessage(content=base_sys.content + explain_extension)
+    return append_chat_history(
+        state,
+        [custom_sys],
+    )
 
-def build_prompt_messages(state:GraphState)->list[BaseMessage]:
+
+# The central, scalable Prompt Lookup Map
+PROMPT_BUILDERS: PromptRegistry = {
+    AssistantIntent.GENERAL: build_general_prompt,
+    AssistantIntent.HINT: build_hint_prompt,
+    AssistantIntent.DEBUG: build_debug_prompt,
+    AssistantIntent.REVIEW: build_review_prompt,
+    AssistantIntent.EXPLAIN: build_explain_prompt,
+}
+
+
+def build_prompt_messages(
+    state: GraphState,
+) -> list[BaseMessage]:
     """
-    Builds the conversation payload for Gemini by dispatching
-    to intent-specific prompt builders based on user intent.
+    Dispatches execution to the appropriate sub-prompt builder
+    based on the dynamically detected assistant intent.
     """
-    match state.get("intent"):
-        case AssistantIntent.HINT:
-            return build_hint_prompt(state)
-        case AssistantIntent.DEBUG:
-            return build_debug_prompt(state)
-        case AssistantIntent.REVIEW:
-            return build_review_prompt(state)
-        case AssistantIntent.EXPLAIN:
-            return build_explain_prompt(state)
-        case _:
-            return build_general_prompt(state)
-    
+    intent = state.get("intent")
+
+    # Gracefully fall back to general prompt if intent is unassigned or unknown
+    builder = PROMPT_BUILDERS.get(
+        intent,  # type: ignore
+        build_general_prompt,
+    )
+
+    return builder(state)

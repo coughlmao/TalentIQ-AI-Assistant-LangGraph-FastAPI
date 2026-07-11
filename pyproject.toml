@@ -64,6 +64,11 @@ indent-style = "space"
 line-ending = "auto"
 docstring-code-format = true
 
+[dependency-groups]
+dev = [
+    "ruff>=0.15.21",
+]
+
 [tool.ruff.lint.pyupgrade]
 keep-runtime-typing = false
 
