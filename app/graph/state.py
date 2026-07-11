@@ -5,6 +5,8 @@ from typing import Any
 from langchain_core.messages import BaseMessage
 from typing_extensions import TypedDict
 
+from app.graph.intents import AssistantIntent
+
 
 class GraphState(TypedDict):
     chat_history: list[dict[str, str]]
@@ -12,4 +14,5 @@ class GraphState(TypedDict):
     problem_context: dict[str, Any]
     execution_context: dict[str, Any]
     prompt_messages: list[BaseMessage]
+    intent:AssistantIntent
     final_response: str

@@ -1,8 +1,10 @@
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from app.config import settings
+from app.graph.routing import detect_intent
+from app.logger import logger
 from app.schemas.request import ChatbotRequestSchema
 from app.security.hmac import verify_hmac_signature
 from app.streaming.sse import token_stream_generator
@@ -28,19 +30,28 @@ async def check_health() -> dict[str, str]:
 
 
 @app.get("/")
-def read_root():
+def read_root()->dict[str,str]:
     return {"status": "healthy", "message": "TalentIQ AI Assistant Backend is running!"}
 
 
 @app.post("/api/graph/chat", dependencies=[Depends(verify_hmac_signature)])
-async def handle_workspace_chat(payload: ChatbotRequestSchema):
+async def handle_workspace_chat(payload: ChatbotRequestSchema,)->StreamingResponse:
 
     try:
+        # Extract the latest text from user incoming message payload
+        latest_user_message = ""
+        if payload.chat_history:
+            latest_user_message = payload.chat_history[-1].content
 
+        # Execute pure Python intent deterministic routing logic
+        current_intent = detect_intent(latest_user_message)
         initial_graph_state = {
             "chat_history": [msg.model_dump() for msg in payload.chat_history],
             "problem_context": payload.problem_context.model_dump(),
             "execution_context": payload.execution_context.model_dump(),
+            "prompt_messages":[],
+            "intent":current_intent,
+            "latest_user_message":latest_user_message,
             "final_response": "",
         }
 
@@ -55,7 +66,7 @@ async def handle_workspace_chat(payload: ChatbotRequestSchema):
         )
 
     except Exception as err:
-
-        print("Server Entry Processing Interruption:", str(err))
-
-        raise HTTPException(status_code=500, detail=str(err)) from err
+        
+        logger.exception("Server entry processing interruption")
+        
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR ,detail=str(err)) from err
