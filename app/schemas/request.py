@@ -1,3 +1,5 @@
+# app/schemas/request.py
+
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -13,7 +15,7 @@ class ProblemContextSchema(BaseModel):
         description="The text description layout of the problem",
     )
     constraints: list[str] = Field(
-        default_factoey=list,
+        default_factory=list,
         description="List of constraints",
     )
 

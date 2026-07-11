@@ -1,3 +1,5 @@
+# app/graph/state.py
+
 from __future__ import annotations
 
 from typing import Any
@@ -14,5 +16,5 @@ class GraphState(TypedDict):
     problem_context: dict[str, Any]
     execution_context: dict[str, Any]
     prompt_messages: list[BaseMessage]
-    intent:AssistantIntent
+    intent: AssistantIntent
     final_response: str

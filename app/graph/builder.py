@@ -1,27 +1,46 @@
+# app/graph/builder.py
+
 from langgraph.graph import (
     END,
     START,
     StateGraph,
 )
 
-from app.graph.nodes import coding_instructor_node
+from app.graph.nodes import (
+    build_prompt_node,
+    route_intent_node,
+)
 from app.graph.state import GraphState
 
 builder = StateGraph(GraphState)
 
+# 1. Register the processing nodes
 builder.add_node(
-    "instructor",
-    coding_instructor_node,
+    "route_intent",
+    route_intent_node,
 )
 
+builder.add_node(
+    "build_prompt",
+    build_prompt_node,
+)
+
+# 2. Build the orchestration flow topology
 builder.add_edge(
     START,
-    "instructor",
+    "route_intent",
 )
 
 builder.add_edge(
-    "instructor",
+    "route_intent",
+    "build_prompt",
+)
+
+# Route to END right after building the prompt payload
+builder.add_edge(
+    "build_prompt",
     END,
 )
 
+# The compiled runner execution instance
 graph_executor = builder.compile()

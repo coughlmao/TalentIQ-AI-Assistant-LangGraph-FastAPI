@@ -1,3 +1,5 @@
+# app/graph/routing.py
+
 from __future__ import annotations
 
 import re
@@ -11,7 +13,7 @@ HINT_PATTERNS = (
     r"\bnudge\b",
 )
 
-DEBUG_PATTERNS= (
+DEBUG_PATTERNS = (
     r"\berror\b",
     r"\bbug\b",
     r"\bdebug\b",
@@ -24,7 +26,7 @@ DEBUG_PATTERNS= (
     r"\bmle\b",
 )
 
-REVIEW_PATTERNS=(
+REVIEW_PATTERNS = (
     r"\breview\b",
     r"\boptimi[sz]e\b",
     r"\bcomplexity\b",
@@ -33,39 +35,50 @@ REVIEW_PATTERNS=(
     r"\bimprove\b",
 )
 
-EXPLAIN_PATTERNS=(
+EXPLAIN_PATTERNS = (
     r"\bexplain\b",
     r"\bwhat is\b",
     r"\bhow does\b",
     r"\bwhy\b",
 )
 
+
 def _matches(
-    message:str,
-    patterns:tuple[str,...]    
-)->bool:
-    
-    return any(
-        re.search(pattern,message)
-        for pattern in patterns
-    )
-    
+    message: str,
+    patterns: tuple[str, ...],
+) -> bool:
+
+    return any(re.search(pattern, message) for pattern in patterns)
+
+
 def detect_intent(
-    message:str,
-)->AssistantIntent:
-    
-    normalized=message.lower()
-    
-    if _matches(normalized,HINT_PATTERNS):
+    message: str,
+) -> AssistantIntent:
+
+    normalized = message.lower()
+
+    if _matches(
+        normalized,
+        HINT_PATTERNS,
+    ):
         return AssistantIntent.HINT
-    
-    if _matches(normalized,DEBUG_PATTERNS):
+
+    if _matches(
+        normalized,
+        DEBUG_PATTERNS,
+    ):
         return AssistantIntent.DEBUG
-    
-    if _matches(normalized,REVIEW_PATTERNS):
+
+    if _matches(
+        normalized,
+        REVIEW_PATTERNS,
+    ):
         return AssistantIntent.REVIEW
-    
-    if _matches(normalized,EXPLAIN_PATTERNS):
+
+    if _matches(
+        normalized,
+        EXPLAIN_PATTERNS,
+    ):
         return AssistantIntent.EXPLAIN
-    
+
     return AssistantIntent.GENERAL
