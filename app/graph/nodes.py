@@ -5,7 +5,7 @@ from app.graph.state import GraphState
 
 def coding_instructor_node(
     state: GraphState,
-):
+)->dict[str,str]:
 
     messages = build_prompt_messages(state)
 

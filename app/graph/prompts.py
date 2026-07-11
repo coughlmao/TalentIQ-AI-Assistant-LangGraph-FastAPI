@@ -1,23 +1,23 @@
 from langchain_core.messages import (
     AIMessage,
+    BaseMessage,
     HumanMessage,
     SystemMessage,
 )
 
+from app.graph.intents import AssistantIntent
 from app.graph.state import GraphState
 
 
-def build_prompt_messages(
-    state: GraphState,
-) -> list:
+def build_base_prompt(state:GraphState)->SystemMessage:
     """
-    Builds the conversation payload for Gemini.
+    Builds the conre context containing system instructions,problem parameters
+    and the student's workspace environment
     """
-
     prob = state["problem_context"]
     exec_data = state["execution_context"]
 
-    system_prompt = SystemMessage(
+    return SystemMessage(
         content=(
             "You are an expert DSA programming instructor helping a student solve coding challenges.\n\n"
             "Rules:\n"
@@ -58,8 +58,12 @@ def build_prompt_messages(
         )
     )
 
-    chat_payload = [system_prompt]
-
+def append_chat_history(state:GraphState,initial_payload:list[BaseMessage])->list[BaseMessage]:
+    
+    """
+    Appends the last 4 messages of chat history to the conversation payload
+    """
+    chat_payload = list(initial_payload)
     recent_history = state["chat_history"][-4:]
 
     for msg in recent_history:
@@ -73,3 +77,79 @@ def build_prompt_messages(
             chat_payload.append(AIMessage(content=content))
 
     return chat_payload
+
+def build_general_prompt(state:GraphState) -> list[BaseMessage]:
+    base_sys=build_base_prompt(state)
+    return append_chat_history(state,[base_sys],)
+
+def build_hint_prompt(state:GraphState)->list[BaseMessage]:
+    base_sys=build_base_prompt(state)
+    hint_extension=(
+        "\n\n"
+        "## Hint Mode\n"
+        "- Do NOT reveal the full solution.\n"
+        "- Guide the student.\n"
+        "- Ask guiding questions.\n"
+        "- Give only incremental, bite-sized hints.\n"
+    )
+    custom_sys=SystemMessage(content=base_sys.content + hint_extension)
+    return append_chat_history(state,[custom_sys])
+
+def build_debug_prompt(state:GraphState)->list[BaseMessage]:
+    base_sys=build_base_prompt(state)
+    debug_extension=(
+        "\n\n"
+        "## Debug Mode\n"
+        "Focus cleanly on resolving code problems:\n"
+        "- Compiler errors\n"
+        "- Runtime errors\n"
+        "- Logical bugs\n"
+        "- Do not discuss unrelated high-level algorithms.\n"
+    )
+    custom_sys=SystemMessage(content=base_sys.content+debug_extension)
+    return append_chat_history(state,[custom_sys])
+
+def build_review_prompt(state:GraphState)->list[BaseMessage]:
+    base_sys=build_base_prompt(state)
+    review_extension=(
+        "\n\n"
+        "## Review Mode\n"
+        "Review the submitted implementation for:\n"
+        "- Readability\n"
+        "- Time and Space Complexity\n"
+        "- Missing or fragile edge cases\n"
+        "- Structural naming conventions\n"
+        "- Maintainability\n"
+    )
+    custom_sys=SystemMessage(content=base_sys.content + review_extension)
+    return append_chat_history(state,[custom_sys])
+
+def build_explain_prompt(state:GraphState)->list[BaseMessage]:
+    base_sys=build_base_prompt(state)
+    explain_extension=(
+        "\n\n"
+        "## Explain Mode\n"
+        "- Focus heavily on teaching fundamental concepts.\n"
+        "- Use illustrative micro-examples.\n"
+        "- Avoid solving the specific problem context directly unless explicitly requested.\n"
+    )
+    custom_sys=SystemMessage(content=base_sys.content + explain_extension)
+    return append_chat_history(state,[custom_sys])
+
+def build_prompt_messages(state:GraphState)->list[BaseMessage]:
+    """
+    Builds the conversation payload for Gemini by dispatching
+    to intent-specific prompt builders based on user intent.
+    """
+    match state.get("intent"):
+        case AssistantIntent.HINT:
+            return build_hint_prompt(state)
+        case AssistantIntent.DEBUG:
+            return build_debug_prompt(state)
+        case AssistantIntent.REVIEW:
+            return build_review_prompt(state)
+        case AssistantIntent.EXPLAIN:
+            return build_explain_prompt(state)
+        case _:
+            return build_general_prompt(state)
+    

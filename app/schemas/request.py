@@ -13,7 +13,7 @@ class ProblemContextSchema(BaseModel):
         description="The text description layout of the problem",
     )
     constraints: list[str] = Field(
-        default=list,
+        default_factoey=list,
         description="List of constraints",
     )
 
