@@ -5,7 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from app.config import settings
-from app.graph.intents import AssistantIntent
 from app.logger import logger
 from app.schemas.request import ChatbotRequestSchema
 from app.security.hmac import verify_hmac_signature
@@ -61,9 +60,14 @@ async def handle_workspace_chat(
             "latest_user_message": latest_user_message,
             "problem_context": payload.problem_context.model_dump(),
             "execution_context": payload.execution_context.model_dump(),
+            "intent": None,
+            "conversation_context": [],
+            "retrieved_documents": [],
+            "tool_calls": [],
+            "tool_results": [],
             "prompt_messages": [],
-            "intent": AssistantIntent | None,
             "final_response": "",
+            "metadata": {},
         }
 
         return StreamingResponse(

@@ -8,6 +8,8 @@ from langgraph.graph import (
 
 from app.graph.nodes import (
     build_prompt_node,
+    conversation_context_node,
+    prepare_response_node,
     route_intent_node,
 )
 from app.graph.state import GraphState
@@ -21,8 +23,18 @@ builder.add_node(
 )
 
 builder.add_node(
+    "conversation_context",
+    conversation_context_node,
+)
+
+builder.add_node(
     "build_prompt",
     build_prompt_node,
+)
+
+builder.add_node(
+    "prepare_response",
+    prepare_response_node,
 )
 
 # 2. Build the orchestration flow topology
@@ -36,9 +48,14 @@ builder.add_edge(
     "build_prompt",
 )
 
-# Route to END right after building the prompt payload
 builder.add_edge(
     "build_prompt",
+    "prepare_response",
+)
+
+# Route to END right after building the prompt payload
+builder.add_edge(
+    "prepare_response",
     END,
 )
 
