@@ -1,5 +1,3 @@
-# app/graph/context.py
-
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,

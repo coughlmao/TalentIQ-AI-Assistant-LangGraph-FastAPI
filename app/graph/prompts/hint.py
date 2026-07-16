@@ -22,7 +22,7 @@ def build_hint_prompt(
         "- Give only incremental, bite-sized hints.\n"
     )
     custom_sys = SystemMessage(content=base_sys.content + hint_extension)
-    return (
+    return [
         custom_sys,
         *state["conversation_context"],
-    )
+    ]

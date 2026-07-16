@@ -1,5 +1,3 @@
-# app/schemas/request.py
-
 from typing import Literal
 
 from pydantic import BaseModel, Field
