@@ -1,4 +1,3 @@
-# app/graph/types.py
 
 from collections.abc import Callable
 

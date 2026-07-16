@@ -1,4 +1,3 @@
-# app/graph/state.py
 
 from __future__ import annotations
 
@@ -30,6 +29,8 @@ class GraphState(TypedDict):
 
     execution_context: dict[str, Any]
 
+    retrieved_documents: list[Document]
+    
     # ------------------------------------------------------------------
     # Routing
     # ------------------------------------------------------------------
@@ -58,13 +59,17 @@ class GraphState(TypedDict):
     # Tool Execution
     # ------------------------------------------------------------------
 
-    tool_results: list[Any]
+    tool_plan: dict[str,Any]
+    
+    tool_results:list[dict[str,Any]]
 
     # ------------------------------------------------------------------
     # Prompt
     # ------------------------------------------------------------------
 
     prompt_messages: list[BaseMessage]
+    
+    llm_messages: list[BaseMessage]
 
     # ------------------------------------------------------------------
     # Generation

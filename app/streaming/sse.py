@@ -1,12 +1,6 @@
-# app/streaming/sse.py
-
 from collections.abc import AsyncGenerator
 
 from app.graph.builder import graph_executor
-from app.graph.llm import (
-    llm,
-    stream_response,
-)
 from app.graph.state import GraphState
 from app.logger import logger
 
@@ -15,32 +9,30 @@ async def token_stream_generator(
     initial_graph_state: GraphState,
 ) -> AsyncGenerator[str, None]:
     """
-    Executes the LangGraph pipeline to route and build context,
-    then streams Gemini tokens directly as Server-Sent Events (SSE).
+    Executes the LangGraph topology and streams internal events and token chunks
+    in real time back to the client via Server-Sent Events (SSE).
     """
-    logger.info("Starting token stream generator workflow")
+    logger.info("Initializing graph-native event stream workflow")
 
     try:
-        logger.info("Invoking LangGraph intent routing & prompt pipeline...")
-        final_graph_state = await graph_executor.ainvoke(initial_graph_state)
+        # Stream graph lifecycle events using the production v2 engine specifications
+        async for event in graph_executor.astream_events(initial_graph_state, version="v2"):
+            kind = event.get("event")
+            
+            # Catch token stream chunks directly from the chat model provider inside the graph
+            if kind == "on_chat_model_stream":
+                chunk = event.get("data", {}).get("chunk")
+                if chunk and chunk.content:
+                    # Stream tokens out immediately to client as an SSE data frame
+                    yield f"data: {chunk.content}\n\n"
 
-        # Crash loudly right here if the orchestration graph failed to deliver
-        messages = final_graph_state["llm_messages"]
-
-        logger.info("Initiating Gemini token stream...")
-        async for token in stream_response(messages):
-            yield f"data: {token}\n\n"
-            if not token.content:
-                continue
-
-            logger.debug("Streaming token received")
-            yield f"data: {token.content}\n\n"
+            # Hook point for monitoring graph node transitions
+            elif kind == "on_chain_start" and event.get("name") == "LangGraph":
+                logger.info("Graph processing chain started execution lifecycle loop")
 
         logger.info("Stream finished successfully")
         yield "event: done\ndata: done\n\n"
 
     except Exception as err:
-        logger.exception(
-            "Streaming error occurred while orchestrating or communicating with LLM"
-        )
+        logger.exception("Streaming error occurred during native graph execution")
         yield f"event: error\ndata: {err!s}\n\n"
