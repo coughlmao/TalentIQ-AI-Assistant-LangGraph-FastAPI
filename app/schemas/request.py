@@ -1,3 +1,5 @@
+# app/schemas/request.py
+
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -15,6 +17,10 @@ class ProblemContextSchema(BaseModel):
     constraints: list[str] = Field(
         default_factory=list,
         description="List of constraints",
+    )
+    tags: list[str] = Field(
+        default_factory=list,
+        description="Semantic tags matching data architecture archetypes (e.g., ['two-sum', 'hashmap'])",
     )
 
 
@@ -49,7 +55,9 @@ class ChatHistoryMessageSchema(BaseModel):
 
 # Your core payload schema validating the incoming stream body
 class ChatbotRequestSchema(BaseModel):
-    problem_id: str
+    problem_id: str = Field(
+        ..., description="Unique ID tracking the targeting algorithm"
+    )
     problem_context: ProblemContextSchema
     execution_context: ExecutionContextSchema
     chat_history: list[ChatHistoryMessageSchema]

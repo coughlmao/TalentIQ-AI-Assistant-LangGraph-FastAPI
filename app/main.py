@@ -17,7 +17,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        settings.CLIENT_URL,
+        str(settings.CLIENT_URL).rstrip("/"),
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -49,12 +49,11 @@ async def handle_workspace_chat(
 ) -> StreamingResponse:
 
     try:
-        # Extract the latest text from user incoming message payload
         latest_user_message = ""
         if payload.chat_history:
             latest_user_message = payload.chat_history[-1].content
 
-        # Execute pure Python intent deterministic routing logic
+        # Map complete payload matrix accurately into runtime GraphState variables
         initial_graph_state = {
             "chat_history": [msg.model_dump() for msg in payload.chat_history],
             "latest_user_message": latest_user_message,
@@ -63,11 +62,11 @@ async def handle_workspace_chat(
             "intent": None,
             "conversation_context": [],
             "retrieved_documents": [],
-            "tool_calls": [],
+            "tool_plan": None,
             "tool_results": [],
-            "prompt_messages": [],
+            "llm_messages": [],
             "final_response": "",
-            "metadata": {},
+            "metadata": {"problem_id": payload.problem_id},
         }
 
         return StreamingResponse(
@@ -81,8 +80,7 @@ async def handle_workspace_chat(
         )
 
     except Exception as err:
-        logger.exception("Server entry processing interruption")
-
+        logger.exception("Server entry processing interruption discovered")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(err),

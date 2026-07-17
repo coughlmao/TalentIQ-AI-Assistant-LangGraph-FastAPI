@@ -1,3 +1,5 @@
+# app/streaming/sse.py
+
 from collections.abc import AsyncGenerator
 
 from app.graph.builder import graph_executor
@@ -16,9 +18,11 @@ async def token_stream_generator(
 
     try:
         # Stream graph lifecycle events using the production v2 engine specifications
-        async for event in graph_executor.astream_events(initial_graph_state, version="v2"):
+        async for event in graph_executor.astream_events(
+            initial_graph_state, version="v2"
+        ):
             kind = event.get("event")
-            
+
             # Catch token stream chunks directly from the chat model provider inside the graph
             if kind == "on_chat_model_stream":
                 chunk = event.get("data", {}).get("chunk")

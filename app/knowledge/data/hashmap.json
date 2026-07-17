@@ -1,0 +1,11 @@
+{
+    "topic": "Hash Map",
+    "tags": [
+        "two-sum",
+        "hashmap",
+        "array",
+        "lookup",
+        "frequency"
+    ],
+    "content": "## Hash Map / Dictionary Foundations\nHash maps provide average-case O(1) time complexity for insertions, lookups, and deletions by using a hash function to map keys to bucket indices.\n\n### Core Archetypes\n1. **Complementary Lookups**: Finding an element (`target - current`) in a single pass.\n2. **Frequency Counting**: Keeping track of occurrences to identify duplicates or modes.\n\n### Common Pitfalls\n- **Key Errors**: Querying a key before verifying its existence.\n- **Mutable Keys**: Attempting to use unhashable types (like Python lists) as dictionary keys."
+}
