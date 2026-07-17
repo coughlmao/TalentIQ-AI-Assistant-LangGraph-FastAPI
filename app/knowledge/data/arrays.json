@@ -1,0 +1,10 @@
+{
+  "topic": "Array Traversal",
+  "tags": [
+    "two-sum",
+    "array",
+    "two-pointers",
+    "sliding-window"
+  ],
+  "content": "## Array Traversal Strategies\nLinear data structures often require element inspection strategies that minimize temporal complexity.\n\n### Core Optimization Archetypes\n1. **Two Pointers**: Converging from both ends (sorted arrays) or running at independent speeds to optimize space to O(1).\n2. **Sliding Window**: Maintaining a continuous sub-array state window to reduce O(N^2) loops down to O(N)."
+}
