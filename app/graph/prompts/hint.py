@@ -17,9 +17,9 @@ def build_hint_prompt(
         "\n\n"
         "## Hint Mode\n"
         "- Do NOT reveal the full solution.\n"
-        "- Guide the student.\n"
-        "- Ask guiding questions.\n"
-        "- Give only incremental, bite-sized hints.\n"
+        "- Lead with the smallest useful nudge.\n"
+        "- Ask at most one guiding question when it helps unblock the student.\n"
+        "- Give incremental, bite-sized hints in a clear order.\n"
     )
     custom_sys = SystemMessage(content=base_sys.content + hint_extension)
     return [

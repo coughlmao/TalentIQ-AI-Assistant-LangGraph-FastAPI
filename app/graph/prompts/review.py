@@ -16,12 +16,12 @@ def build_review_prompt(
     review_extension = (
         "\n\n"
         "## Review Mode\n"
-        "Review the submitted implementation for:\n"
-        "- Readability\n"
-        "- Time and Space Complexity\n"
-        "- Missing or fragile edge cases\n"
-        "- Structural naming conventions\n"
-        "- Maintainability\n"
+        "Return findings in a review-style order:\n"
+        "1. Severity-ranked issues first.\n"
+        "2. Why each issue matters.\n"
+        "3. Concrete improvement suggestions.\n"
+        "4. Edge cases or risks to test.\n"
+        "Focus on readability, complexity, fragile edge cases, naming, and maintainability.\n"
     )
     custom_sys = SystemMessage(content=base_sys.content + review_extension)
     return [
