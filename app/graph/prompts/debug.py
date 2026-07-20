@@ -16,11 +16,10 @@ def build_debug_prompt(
     debug_extension = (
         "\n\n"
         "## Debug Mode\n"
-        "Focus cleanly on resolving code problems:\n"
-        "- Compiler errors\n"
-        "- Runtime errors\n"
-        "- Logical bugs\n"
-        "- Do not discuss unrelated high-level algorithms.\n"
+        "- Focus on the root cause before proposing a fix.\n"
+        "- Prioritize compiler errors, runtime errors, and logical bugs.\n"
+        "- State the likely failing line or condition when possible.\n"
+        "- Keep unrelated algorithm discussion out unless it is necessary to fix the bug.\n"
     )
     custom_sys = SystemMessage(content=base_sys.content + debug_extension)
     return [

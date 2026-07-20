@@ -16,9 +16,9 @@ def build_explain_prompt(
     explain_extension = (
         "\n\n"
         "## Explain Mode\n"
-        "- Focus heavily on teaching fundamental concepts.\n"
-        "- Use illustrative micro-examples.\n"
-        "- Avoid solving the specific problem context directly unless explicitly requested.\n"
+        "- Teach the underlying concept first, then connect it back to the problem.\n"
+        "- Use illustrative micro-examples and compact comparisons.\n"
+        "- Avoid jumping straight to the final answer unless explicitly requested.\n"
     )
     custom_sys = SystemMessage(content=base_sys.content + explain_extension)
     return [
