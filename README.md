@@ -8,8 +8,8 @@ The backend powers an AI coding instructor capable of:
 - Detecting user intent
 - Building contextual prompts
 - Retrieving relevant programming knowledge
-- Executing code through an external sandbox service
-- Streaming AI responses in real time
+- Requesting code execution through an external Express service
+- Forwarding emitted model events as Server-Sent Events (SSE)
 
 The system is designed around a **LangGraph workflow architecture**, allowing future expansion into more advanced agentic capabilities such as dynamic tool selection, multi-step reasoning, and long-term memory.
 
@@ -65,7 +65,8 @@ General programming conversations and explanations.
 
 ### Hint
 
-Provides incremental guidance without revealing complete solutions.
+Prompt-guided hints intended to provide incremental guidance without revealing
+complete solutions.
 
 ### Debug
 
@@ -106,7 +107,7 @@ Focuses on teaching programming concepts and fundamentals.
 
 ### External Services
 
-- Express.js execution sandbox
+- External Express.js code-execution service
 - Frontend coding workspace
 
 ---
@@ -154,15 +155,22 @@ app
     │   └── context_formatter.py
     │
     ├── retrieval
+    │   ├── repository.py
     │   └── retrieval.py
     │
     ├── tools
     │   ├── tool_planning.py
     │   ├── tool_execution.py
+    │   ├── tool_executor.py
     │   └── tool_schema.py
     │
-    └── llm
-        └── llm.py
+    ├── llm
+    │   └── llm.py
+    │
+    └── knowledge
+        └── data
+            ├── arrays.json
+            └── hashmap.json
 ```
 
 ---
@@ -201,9 +209,24 @@ The frontend sends:
 
 ```json
 {
-  "problem_context": {},
-  "execution_context": {},
-  "chat_history": []
+  "problem_id": "two-sum",
+  "problem_context": {
+    "title": "Two Sum",
+    "description": "Find two numbers in an array that add up to a target.",
+    "constraints": ["Exactly one solution exists"],
+    "tags": ["two-sum", "hashmap"]
+  },
+  "execution_context": {
+    "language": "python",
+    "user_code": "",
+    "compiler_output": ""
+  },
+  "chat_history": [
+    {
+      "role": "user",
+      "content": "Can you help me solve this?"
+    }
+  ]
 }
 ```
 
@@ -273,13 +296,13 @@ The assistant currently uses recent conversation history to keep prompts efficie
 
 The retrieval pipeline provides additional knowledge context.
 
-Currently it supports:
+Currently it performs tag-based matching against local JSON knowledge assets:
 
-- Problem-related references
-- Programming concepts
-- Execution context enrichment
+- Matches problem-context tags against tags in the local JSON knowledge assets
+- Injects matching entries into the final prompt
 
-The retrieval layer is isolated so it can later be replaced with:
+It does not currently perform vector search or retrieve directly from compiler output
+or execution context. The retrieval layer is isolated so it can later be replaced with:
 
 - MongoDB vector search
 - Chroma
@@ -293,22 +316,28 @@ without affecting the graph architecture.
 
 # 5. Tool Execution
 
-The assistant integrates with the existing Express execution service.
+The assistant integrates with the existing external Express code-execution service.
 
-Supported languages:
+The backend forwards the selected editor language to the Express execution service.
+The actual supported languages and runtime availability are determined by that service.
+The current integration is intended for:
 
 - Python
 - JavaScript
 
-(Java support depends on Java runtime availability.)
+Java is not implemented or validated in this repository.
 
 The execution pipeline provides:
 
 - Program output
 - Runtime errors
-- Compiler failures
+- Service-reported compilation failures
 
 which are injected back into the AI reasoning context.
+
+Hint mode is currently prompt-driven. The planner creates a structured `request_hint`
+action, but the execution node only dispatches `execute_code` actions to the Express
+service; no separate hint service is currently wired.
 
 ---
 
@@ -353,12 +382,15 @@ The model receives:
 
 # Streaming Responses
 
-The backend uses Server Sent Events (SSE).
+The backend returns a Server-Sent Events (SSE) response and forwards chat-model
+chunks emitted through LangGraph's event stream. Incremental delivery depends on
+the model provider and deployment path; end-to-end browser streaming has not been
+independently verified.
 
 The response flow:
 
 ```
-Gemini Token
+Gemini Model Events
       |
       v
 LangGraph Event Stream
@@ -369,8 +401,6 @@ FastAPI StreamingResponse
       v
 Frontend Chat Interface
 ```
-
-This allows users to see responses appear progressively.
 
 ---
 
@@ -409,10 +439,12 @@ Request:
 
 ```json
 {
+  "problem_id": "two-sum",
   "problem_context": {
     "title": "Two Sum",
     "description": "Find two numbers",
-    "constraints": []
+    "constraints": [],
+    "tags": ["two-sum"]
   },
 
   "execution_context": {
@@ -453,7 +485,7 @@ data: done
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.12+
 - Google Gemini API Key
 
 ---
@@ -468,31 +500,15 @@ git clone <repository-url>
 cd TalentIQ-AI-Assistant-LangGraph-FastAPI
 ```
 
-Create virtual environment:
+Install dependencies and sync the managed environment:
 
 ```bash
-python -m venv .venv
+uv sync
 ```
 
-Activate:
-
-Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
-Linux/Mac:
-
-```bash
-source .venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
+The project declares dependencies in `pyproject.toml` and pins the resolved
+environment in `uv.lock`. This repository does not include a `requirements.txt`
+file.
 
 ---
 
@@ -526,6 +542,13 @@ Start FastAPI:
 uvicorn app.main:app --reload
 ```
 
+When using `uv`, the equivalent command keeps execution inside the managed
+environment:
+
+```bash
+uv run uvicorn app.main:app --reload
+```
+
 Server:
 
 ```
@@ -542,12 +565,18 @@ The middleware validates:
 
 - Request signature
 - Timestamp freshness
-- Shared secret integrity
+- Verification using the configured shared secret
 
 Protection includes:
 
-- Replay attack prevention
-- Timing attack resistant comparison
+- Rejection of requests outside a 30-second timestamp window
+- Timing-attack-resistant signature comparison
+
+This provides request-integrity and authenticity checks between parties that share
+the secret; it is not user authentication and does not prevent replay within the
+accepted timestamp window. Configure a strong `INTERNAL_SHARED_SECRET` in every
+non-local environment; the current application has a development fallback when
+the variable is absent. Remove that fallback before deployment.
 
 ---
 
@@ -565,13 +594,11 @@ Responsible for:
 - Authentication
 - Streaming responses
 
-
 ### Graph Layer
 
 Responsible for:
 
 - AI workflow orchestration
-
 
 ### Prompt Layer
 
@@ -579,20 +606,17 @@ Responsible for:
 
 - Assistant behavior
 
-
 ### Tool Layer
 
 Responsible for:
 
 - External actions
 
-
 ### Retrieval Layer
 
 Responsible for:
 
 - Knowledge enrichment
-
 
 ### Model Layer
 
@@ -671,17 +695,14 @@ The backend currently provides:
 ✅ Gemini integration  
 ✅ Intent-based routing  
 ✅ Context management  
-✅ Retrieval pipeline  
-✅ Tool execution integration  
-✅ SSE streaming responses  
-✅ Secure request validation  
+✅ Tag-based local JSON retrieval  
+✅ Express-backed code execution for debug requests  
+✅ SSE response streaming when provider events are emitted  
+✅ HMAC request validation  
 
-The architecture is prepared for future expansion into a more advanced autonomous coding assistant system.
+The repository does not currently include a runnable automated test suite. The
+Express execution service and Google Gemini credentials are external runtime
+dependencies.
 
----
-
-# Author
-
-TalentIQ AI Assistant Backend
-
-Built using FastAPI + LangGraph + Gemini
+The architecture is prepared for future expansion into a more advanced coding
+assistant system.
